@@ -43,7 +43,8 @@ To get started with this workshop, you need to launch a CloudFormation template 
 Region | Launch Template
 ------------ | -------------
 **N. Virginia** (us-east-1) | [![Launch Chatbot Stack into Virginia with CloudFormation](Images/deploy-to-aws.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=chatbot&templateURL=https://s3.amazonaws.com/serverless-chatbot-code/chatbot.yaml)
-**Oregon** (us-west-2) | [![Launch Chatbot Stack into Virginia with CloudFormation](Images/deploy-to-aws.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=chatbot&templateURL=https://s3.amazonaws.com/serverless-chatbot-code-us-west-2/chatbot-us-west-2.yaml)
+**Oregon** (us-west-2) | [![Launch Chatbot Stack into Oregon with CloudFormation](Images/deploy-to-aws.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=chatbot&templateURL=https://s3.amazonaws.com/serverless-chatbot-code-us-west-2/chatbot-us-west-2.yaml)
+**Frankfurt** (eu-central-1) | [![Launch Chatbot Stack into Frankfurt with CloudFormation](Images/deploy-to-aws.png)](https://console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/new?stackName=chatbot&templateURL=https://s3.amazonaws.com/serverless-chatbot-code-eu-central-1/chatbot-eu-central-1.yaml)
 
 2\. This will launch the CloudFormation console and it should automatically load in the relevant CloudFormation & SAM YAML file. Click **Next**
 
