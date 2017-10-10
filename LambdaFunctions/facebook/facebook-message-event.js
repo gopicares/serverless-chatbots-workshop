@@ -119,6 +119,9 @@ var MarkAsAnswered = function(message, answer, state, event, context, callback) 
 
 var SendFacebookMessage = function(recipient, message, answered, event, context, callback) {
     console.log("Sending message to Facebook:" + message);
+    message = message.replace(/[\u00A0-\u9999<>\&]/gim, function(i) {
+        return '&#' + i.charCodeAt(0) + ';';
+    });
     var response = JSON.stringify({
         "recipient": {
             "id": recipient

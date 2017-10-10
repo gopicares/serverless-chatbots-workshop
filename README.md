@@ -74,9 +74,9 @@ For this workshop we will use Elasticsearch to build a knowledge base and store 
 
 2\. Click on **Create a new domain**
 
-3\. Enter `chatbot` as **Elasticsearch domain name**. Select Elasticsearch version **2.3** and click **Next**.
+3\. Enter `chatbot` as **Elasticsearch domain name**. Select Elasticsearch version **5.5** and click **Next**.
 
-4\. In this step we will configure our Elasticsearch cluster. Keep the Instance count on **1**, but change the **Instance type** to **t2.micro.elasticsearch** and leave both checkboxes below unticked. For the **Storage type** choose **EBS** and leave the default parameters of **General Purpose (SSD)** and **10GB**. Click next.
+4\. In this step we will configure our Elasticsearch cluster. Keep the Instance count on **1**, but change the **Instance type** to **t2.small.elasticsearch** and leave both checkboxes below unticked. For the **Storage type** choose **EBS** and leave the default parameters of **General Purpose (SSD)** and **10GB**. Click next.
 
 5\. Now we need to specify an access policy for our Elasticsearch cluster. We want to provide world-readable access to our dashboard, but lock down the adding, editing and deleting of data within the cluster. Hence, please use the below policy (**Important:** Change all the `<AWS-REGION>` and `<AWS-ACCOUNT>` references below with your  AWS region and AWS account ID that you are using - AWS Regions must be defined with the [Region API Code](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html#concepts-available-regions) and your AWS Account ID can be found in [My Account](https://console.aws.amazon.com/billing/home?#/account) in your console):
 
@@ -104,7 +104,8 @@ For this workshop we will use Elasticsearch to build a knowledge base and store 
       },
       "Action": "es:ESHttpP*",
       "Resource": [
-        "arn:aws:es:<AWS-REGION>:<AWS-ACCOUNT>:domain/chatbot/.kibana-4*",
+        "arn:aws:es:<AWS-REGION>:<AWS-ACCOUNT>:domain/chatbot/.kibana*",
+        "arn:aws:es:<AWS-REGION>:<AWS-ACCOUNT>:domain/chatbot/_plugin/kibana*",
         "arn:aws:es:<AWS-REGION>:<AWS-ACCOUNT>:domain/chatbot/messages/_msearch*",
         "arn:aws:es:<AWS-REGION>:<AWS-ACCOUNT>:domain/chatbot/messages/_search*"
       ]
@@ -121,7 +122,7 @@ For this workshop we will use Elasticsearch to build a knowledge base and store 
 }
 ```
 
-6\. Click next to review all your parameters. If everything is fine, click on **Confirm and create**. Your Elasticsearch cluster will now launch. This procedure will take roughly 10 minutes, so we suggest to proceed to Section 1 whilst your Elasticsearch cluster will get ready in the background.
+6\. Click next to review all your parameters. If everything is fine, click on **Confirm**. Your Elasticsearch cluster will now launch. This procedure will take roughly 10 minutes, so we suggest to proceed to Section 1 whilst your Elasticsearch cluster will get ready in the background.
 
 
 ## Section 1 - Facebook Page Integration
@@ -136,47 +137,53 @@ In this section we will create a new Page on Facebook, create a Facebook App thr
 
 1\. Open your Facebook account and navigate to Facebook Pages and [**Create a Page**](https://www.facebook.com/pages/create/).
 
-2\. Choose the type of Page you want to create. For this example we will choose a **Cause or Community** page and provide it a name, such as for example WildRydes Chatbot Workshop of \<Your Name\>
+2\. Choose the type of Page you want to create. For this example we will choose a **Cause or Community** page and provide it a name, such as for example `WildRydes Chatbot Workshop of <Your Name>` and click on **Get Started**
 
 ![Facebook Page Type](Images/fb-create-page.png)
 
-3\. Proceed to setup the Facebook page. These steps are optional, and you can safely hit the **Skip** button until the Facebook page is created.
+3\. Navigate to the [Facebook Developer Portal](https://developers.facebook.com/) and click on the right-hand drop-down box **My Apps** and select **Add a New App**
 
-4\. Navigate to the [Facebook Developer Portal](https://developers.facebook.com/) and click on the right-hand drop-down box **My Apps** and select **Add a New App**
+**NOTE:** If this is the first time you are using Facebook Developers you might need to go through a few additional steps.
 
 ![Facebook Create App](Images/fb-create-app.png)
 
-5\. Provide your application a name and provide a working e-mail address. In the Category Dropdown choose **Apps for Pages**
+4\. Provide your application a name and provide a working e-mail address. Click on **Create App ID**
 
-6\. Facebook will now redirect you to your App Settings page. Click on the left hand side navigation bar on **Add Product**
+5\. Facebook will now redirect you to your App Settings page. Click on the left hand side navigation bar on **Add Product**
 
 ![Facebook Add Product](Images/fb-app-add-product.png)
 
-7\. Now click on the **Get Started** button of **Webhooks**
+6\. Now click on the **Setup** button of **Webhooks**
 
 ![Facebook Add Webhook](Images/fb-add-webhook.png)
 
-8\. We now want to subscribe our AWS Lambda function to this Facebook app. Click on **New Subcription** and select **Page**
+7\. We now want to subscribe our AWS Lambda function to this Facebook app. Select **Page** from the dropdown and click on **Subscribe to this topic**
 
 ![Facebook Subscribe Webhook](Images/fb-add-webhook-subscription.png)
 
-9\. In the popup dialog enter your API Gateway URL to the `facebook-page-webhook` webhook into the **Callback URL** textbox. A sample URL would be  `https://<domain-id>.execute-api.<your-region>.amazonaws.com/Prod/facebook-page-webhook`. For the **Verify token** enter **reinvent-workshop** as value. (_Note: To simplify this workshop, we hardcoded the verify token into the AWS Lambda code. If you would deploy a production app, make sure to change the verify token to a value only known to you and update the `authenticateFacebookWebhook` function accordingly in the **chatbot-FBWebhook-\<Random ID\>** AWS Lambda function)_) For the **Subscription fields** tick the **feed** and **messages** checkboxes, this will allow us to be notified via webhook upon any new message or feed post.
-
-![Facebook Webhook Parameters](Images/fb-webhook-parameters.png)
+8\. In the popup dialog enter your API Gateway URL to the `facebook-page-webhook` webhook into the **Callback URL** textbox. A sample URL would be  `https://<domain-id>.execute-api.<your-region>.amazonaws.com/Prod/facebook-page-webhook`. For the **Verify token** enter **reinvent-workshop** as value. (_Note: To simplify this workshop, we hardcoded the verify token into the AWS Lambda code. If you would deploy a production app, make sure to change the verify token to a value only known to you and update the `authenticateFacebookWebhook` function accordingly in the **chatbot-FBWebhook-\<Random ID\>** AWS Lambda function)_)
 
 _Note: To find your API Gateway stage URL, go to the **AWS Management Console**, navigate to the **Amazon API Gateway Service** and click on **chatbot**. Select **Stages** and click on **Prod** in the Stage selection legend. You will now see the URL on the right side:_
 
 ![API Gateway Stage URL](Images/api-gw-stage.png)
 
-10\. We now added a webhook, but we still lack the Messenger integration. Click on **Add Product** on your left menu and click on the **Get Started** button of **Messenger** on the next page.
+9\. Now click on **Verify and Save**.
+
+![Facebook Webhook Parameters](Images/fb-webhook-parameters.png)
+
+10\. We also need to subscribe this webhook to subscribe to incoming messages. Hence scroll down and search for **messages** and click on **Subscribe**
+
+![Facebook Subscribe Messages](Images/fb-subscribe-messages.png)
+
+11\. We now added a webhook, but we still lack the Messenger integration. Click on **Add Product** on your left menu and click on the **Set up** button of **Messenger** on the next page.
 
 ![Facebook Add Webhook](Images/fb-add-messenger.png)
 
-11\. Before we can associate our webhook with the Facebook page messenger, we must provide our Facebook app access to your Facebook page. Scroll down to **Token Generation** and select your previously created Facebook page (e.g. WildRydes Chatbot Workshop of Your Name). This will trigger an OAuth process for your page. Click on the **Continue as Your Name** button and ignore the message that states that "Some of the permissions [..] have not been approved" (_This warning is due to our app not being verified by the Facebook team. To use Messenger capabilities, an app needs to verified first. For this workshop we don't intend to publish this app, so we can safely skip this step - on a real production page you must go through the verification process, otherwise your chatbot will only respond to your developer team_)
+12\. Before we can associate our webhook with the Facebook page messenger, we must provide our Facebook app access to your Facebook page. Scroll down to **Token Generation** and select your previously created Facebook page (e.g. WildRydes Chatbot Workshop of Your Name). This will trigger an OAuth process for your page. Click on the **Continue as Your Name** button and ignore the message that states that "Some of the permissions [..] have not been approved" (_This warning is due to our app not being verified by the Facebook team. To use Messenger capabilities, an app needs to verified first. For this workshop we don't intend to publish this app, so we can safely skip this step - on a real production page you must go through the verification process, otherwise your chatbot will only respond to your developer team_)
 
 ![Facebook Page OAuth](Images/fb-page-oauth.png)
 
-12\. Click **OK** on the next page to allow the access of your app to the Page. **IMPORTANT**: This will generate a Facebook **Page Access Token** - make sure to copy this token for later, click on it to copy it to your clipboard.
+**IMPORTANT**: This will generate a Facebook **Page Access Token** - make sure to copy this token for later, click on it to copy it to your clipboard.
 
 13\. This Page Access Token is a permanent access token (there are also other temporary token options which would be the preferred method for production apps). Let's verify if the generated token actually works and has no expiration date. To do this navigate to the [Facebook Access Token Debugger](https://developers.facebook.com/tools/debug/access_token) and paste your Page Access Token into the textfield and click **Debug**. You should now see your application with which this token is associated, the privileges we have (pages_messaging) and most importantly that it's valid and doesn't expire.
 
@@ -190,12 +197,15 @@ _If you don't have the Facebook page ID handy, navigate to your Facebook page, c
 
 15\. Repeat this same procedure for the other Facebook Lambda function we will use later. Navigate to your **AWS Lambda** console and select the **chatbot-FBMessageEvent-\<Random ID\>** function. Scroll down to see the **Environment variables**. Fill in the `FACEBOOK_ACCESS_TOKEN` with the access token value and the `FACEBOOK_PAGE_ID` with the Facebook Page ID of the page you previously created. Scroll up and hit the **Save** button.
 
+16\. Lastly we need to also subscribe the Messenger Product Webhook to your Facebook page. Navigate to your Facebook Developers setting page for the **Messenger** product and look for the **Webhooks** setting. Select your page in the dropdown and hit the **Subscribe** button.
+
+![Facebook Messenger Subscribe](Images/fb-messenger-subscribe.png)
 
 
 ###### Section 1 Complete!
 That's it! We created our first Facebook application and connected it with our AWS Lambda function. Our AWS Lambda function will now receive updates on incoming Messenger messages and stores them in DynamoDB.
 
-Let's try this out by navigating to our newly created Facebook page. Now click on **Message** to start messaging with the page. This will open up the Messenger tab. Write a message inside, such as "Hello Chatbot". (Note: As we have not created our knowledge base yet, the Chatbot function will not yet reply, this will only be done in
+Let's try this out by navigating to our newly created Facebook page. Now click on **About** and find the **Send Message** to start messaging with the page. This will open up the Messenger tab. Write a message inside, such as "Hello Chatbot". (Note: As we have not created our knowledge base yet, the Chatbot function will not yet reply, this will only be done in
 Section 4)
 
 Now navigate to the **AWS Management Console** and select your **Amazon DynamoDB** service. Click on **Tables** and open the **facebook-messages** table. In the right tab click on **Items** and we should now see the incoming chat messages as items in the table.
@@ -217,53 +227,49 @@ If you aren't familiar with Slack, they offer a free chat communications service
 
 1\. Go to [http://www.slack.com](http://www.slack.com) and create a username, as well as a team.
 
-2\. Once logged into Slack, navigate to [https://slack.com/apps](https://slack.com/apps) and click **Build** on the top right corner of the page, next to your team name.
+2\. Once logged into Slack, navigate to [https://api.slack.com/apps](https://api.slack.com/apps) and click **Create New App** on the top right corner of the page.
 
-3\. Click on **Get Started with Slack Apps** (_Note: For this workshop we could also have chosen Custom Integration instead of a Slack App, since we only use the app for our own purposes. By creating a Slack App though, we can easily extend functionalities to create more advanced bots and interactive messages and potentially publish our app to other Slack users_)
+3\. This should open a dialog box where you can provide a name for your Slack App distinctive to your Chatbot (e.g. WildRydes Chatbot), select your current team in Development Slack Workspace and click on **Create App**.
 
 ![Slack Create App](Images/slack-create-app.png)
 
-4\. This page will provide us with a brief intro of what a Slack app is and how it works. We want to create an app, so click on **Create an app** on the left side of the article:
+4\. We now have created our first Slack app. The workshop code itself relies on AWS Lambda Environment variables to store the Client ID and Client Secret that Slack just created for us. We need to provide these information to our AWS Lambda function before proceeding. Click on **Show** under **App Credentials->Client Secret**.
 
-![Slack Create App](Images/slack-create-app-2.png)
+5\. Open a new tab and navigate to the **AWS Management Console** and select your **AWS Lambda** service. Select the **chatbot-SlackApp-\<Random ID\>** function. Scroll down to see the **Environment variables**. Now go ahead and fill in the `SLACK_CLIENT_ID` and `SLACK_CLIENT_SECRET` variables with the respective values that you see in the Slack App tab. Now scroll up and hit the **Save** button.
 
-5\. This should open a dialog box where you can provide a name for your Slack App distinctive to your Chatbot (e.g. WildRydes Chatbot), select your current team in Development Slack Team and do **NOT** ticket the "I plan to subit this app to the Slack App Directory" checkbox. Now click on **Create App**.
+6\. The next step is to tell Slack how to connect to our AWS Lambda backend. First on the list is authentication. Go back to your Slack browser tab and click on **OAuth & Permissions** in the left navigation bar.
 
-6\. We now have created our first Slack app. The workshop code itself relies on AWS Lambda Environment variables to store the Client ID and Client Secret that Slack just created for us. We need to provide these information to our AWS Lambda function before proceeding. Click on **Show** under **App Credentials->Client Secret**.
+7\. In order for someone to install the Slack App into their channel, we must provide an OAuth mechanism through our app, to allow our AWS Lambda function access to the Slack channel in which the app is installed. To do so, we need to indicated Slack where to find our OAuth endpoint. Click on **Add a new Redirect URL** and enter your API Gateway URL to the `slack-app` webhook and append the "action" parameter with the value **oauth** into the **Redirect URL(s)** textbox. A sample URL would be  `https://<domain-id>.execute-api.<your-region>.amazonaws.com/Prod/slack-app?action=oauth`. Now hit the **Save URLs** button.
 
-7\. Open a new tab and navigate to the **AWS Management Console** and select your **AWS Lambda** service. Select the **chatbot-SlackApp-\<Random ID\>** function. Scroll down to see the **Environment variables**. Now go ahead and fill in the `SLACK_CLIENT_ID` and `SLACK_CLIENT_SECRET` variables with the respective values that you see in the Slack App tab. Now scroll up and hit the **Save** button.
+8\. Next we need to setup the webhook to our AWS Lambda functions that responds to [interactive messages](https://api.slack.com/docs/message-buttons) in our Slack channel. We will use this later to approve or reject automated answers by our chatbot, if the knowledge base search has resulted in low accuracy matches. Click on **Interactive Components** in the left hand navigation.
 
-8\. The next step is to tell Slack how to connect to our AWS Lambda backend. First on the list is authentication. Go back to your Slack browser tab and click on **OAuth & Permissions** in the left navigation bar.
+9\. On the next page click on **Enable Interactive Components**, enter your API Gateway URL to the `slack-app` webhook and append the "action" parameter with the value **interactive_message** into the **Request URL** textbox. A sample URL would be  `https://<domain-id>.execute-api.<your-region>.amazonaws.com/Prod/slack-app?action=interactive_message`. Now click again on the **Enable Interactive Components** button.
 
-9\. In order for someone to install the Slack App into their channel, we must provide an OAuth mechanism through our app, to allow our AWS Lambda function access to the Slack channel in which the app is installed. To do so, we need to indicated Slack where to find our OAuth endpoint. Enter your API Gateway URL to the `slack-app` webhook and append the "action" parameter with the value **oauth** into the **Redirect URL(s)** textbox. A sample URL would be  `https://<domain-id>.execute-api.<your-region>.amazonaws.com/Prod/slack-app?action=oauth`. Now hit the **Save Changes** button.
+![Slack Interactive Components](Images/slack-interactive-components.png)
 
-10\. Next we need to setup the webhook to our AWS Lambda functions that responds to [interactive messages](https://api.slack.com/docs/message-buttons) in our Slack channel. We will use this later to approve or reject automated answers by our chatbot, if the knowledge base search has resulted in low accuracy matches. Click on **Interactive Messages** in the left hand navigation.
+10\. Lastly we also want to provide the functionality to query our Chatbot app for information, straight from a Slack channel using [Slash Commands](https://api.slack.com/slash-commands). Click on **Slash Commands** in the left hand menu.
 
-11\. On the next page click on **Enable Interactive Messages**, enter your API Gateway URL to the `slack-app` webhook and append the "action" parameter with the value **interactive_message** into the **Request URL** textbox. A sample URL would be  `https://<domain-id>.execute-api.<your-region>.amazonaws.com/Prod/slack-app?action=interactive_message`. Now click again on the **Enable Interactive Messages** button.
+11\. Click on **Create New Command**. We will add two commands, one `/helloworld` and one `/lastmessages`, feel free to extend this to your own channel commands later. Click on **Create new Command** and enter **/helloworld** into the **Command** field. For **Request URL** enter your API Gateway URL to the `slack-app` webhook and append the "action" parameter with the value **helloworld**. A sample URL would be  `https://<domain-id>.execute-api.<your-region>.amazonaws.com/Prod/slack-app?action=helloworld`. Enter a meaningful **Short Description** such as "This command will send a friendly Hello back" and leave **Usage Hint** empty. Now click the **Save** button.
 
-12\. Lastly we also want to provide the functionality to query our Chatbot app for information, straight from a Slack channel using [Slash Commands](https://api.slack.com/slash-commands). Click on **Slash Commands** in the left hand menu.
+12\. Repeat this for the `/lastmessages` channel command and for **Request URL** enter your API Gateway URL to the `slack-app` webhook and append the "action" parameter with the value **last_messages**. A sample URL would be  `https://<domain-id>.execute-api.<your-region>.amazonaws.com/Prod/slack-app?action=last_messages`.
 
-13\. Click on **Create New Command**. We will add two commands, one `/helloworld` and one `/lastmessages`, feel free to extend this to your own channel commands later. Enter **/helloworld** into the **Command** field. For **Request URL** enter your API Gateway URL to the `slack-app` webhook and append the "action" parameter with the value **helloworld**. A sample URL would be  `https://<domain-id>.execute-api.<your-region>.amazonaws.com/Prod/slack-app?action=helloworld`. Enter a meaningful **Short Description** such as "This command will send a friendly Hello back" and leave **Usage Hint** empty. Now click the **Save** button.
-
-14\. Repeat this for the `/lastmessages` channel command and for **Request URL** enter your API Gateway URL to the `slack-app` webhook and append the "action" parameter with the value **last_messages**. A sample URL would be  `https://<domain-id>.execute-api.<your-region>.amazonaws.com/Prod/slack-app?action=last_messages`.
-
-15\. We now have a fully function Slack App, but we haven't associated it with any channel yet. To install this app into a channel, we need to use our OAuth mechanism to allow our AWS Lambda function to communicate with a Slack channel. The easiest way to do so, is by using a [Slack Button](https://api.slack.com/docs/slack-button). Navigate to the [Slack Button](https://api.slack.com/docs/slack-button) and scroll down until you see the **Add to Slack** button:
+13\. We now have a fully function Slack App, but we haven't associated it with any channel yet. To install this app into a channel, we need to use our OAuth mechanism to allow our AWS Lambda function to communicate with a Slack channel. The easiest way to do so, is by using a [Slack Button](https://api.slack.com/docs/slack-button). Navigate to the [Slack Button](https://api.slack.com/docs/slack-button) and scroll down until you see the **Add to Slack** button:
 
 ![Slack Button](Images/slack-button.png)
 
-16\. Make sure to select your newly created app (e.g. WildRydes Chatbot) and tick the **incoming webhook** and **commands** checkboxes. Now click on  **Add to Slack**.
+14\. Make sure to select your newly created app (e.g. WildRydes Chatbot) and tick the **incoming webhook** and **commands** checkboxes. Now click on  **Add to Slack**.
 
-17\. The next dialog will present the user clicking on this button (which could be anyone trying to use your new Chatbot Slack App) with the usual OAuth dialog that confirms the access permission of our app to the Slack channel:
+15\. The next dialog will present the user clicking on this button (which could be anyone trying to use your new Chatbot Slack App) with the usual OAuth dialog that confirms the access permission of our app to the Slack channel:
 
 ![Slack OAuth](Images/slack-oauth.png)
 
-18\. Verify that you're using the correct Slack team (the one you created for this workshop) and select for **Post to** the channel in which you would like to install your Slack app. We suggest to use `#general` here, but any channel could be used (e.g. `#facebook-messenger-operations`). Now click **Authorize**.
+16\. Verify that you're using the correct Slack team (the one you created for this workshop) and select for **Post to** the channel in which you would like to install your Slack app. We suggest to use `#general` here, but any channel could be used (e.g. `#facebook-messenger-operations`). Now click **Authorize**.
 
-19\. We should now be redirected to the channel we installed this app, and it should provide us with a message that our WildRydes chatbot integration has been added to the channel.
+17\. We should now be redirected to the channel we installed this app, and it should provide us with a message that our WildRydes chatbot integration has been added to the channel.
 
-20\. For simplicity of this workshop code, we have not created a functionality to associate a Facebook page with a specific Slack channel. As such we need to tell our AWS Lambda function what "default" channel we should post to. As part of enabling this Slack app, Slack has send our AWS Lambda function a few information about the channel it has enabled, which the function has stored in a DynamoDB table. Open another tab and navigate to your **AWS Management Console** and select **Amazon DynamoDB**. Navigate to the **Tables** and select the **slack-app-channels** table. In the right tab, click on **Items**. This will list all the channel information in which our Slack app has been installed, including their secret Configuration and Incoming Webhook URL. Anyone who has this URL, could post information to your Slack Channel, so it's important to not share this URL outside our DynamoDB table. Select and copy the **channel_id** of the channel in which you've just enabled the Slack App. (It's a short alphanumerical string that looks like this `C1LQ4MAEP`)
+18\. For simplicity of this workshop code, we have not created a functionality to associate a Facebook page with a specific Slack channel. As such we need to tell our AWS Lambda function what "default" channel we should post to. As part of enabling this Slack app, Slack has send our AWS Lambda function a few information about the channel it has enabled, which the function has stored in a DynamoDB table. Open another tab and navigate to your **AWS Management Console** and select **Amazon DynamoDB**. Navigate to the **Tables** and select the **slack-app-channels** table. In the right tab, click on **Items**. This will list all the channel information in which our Slack app has been installed, including their secret Configuration and Incoming Webhook URL. Anyone who has this URL, could post information to your Slack Channel, so it's important to not share this URL outside our DynamoDB table. Select and copy the **channel_id** of the channel in which you've just enabled the Slack App. (It's a short alphanumerical string that looks like this `C1LQ4MAEP`)
 
-21\. Navigate to your **AWS Management Console** and select your **AWS Lambda** service. Select the **chatbot-SlackApp-\<Random ID\>** function. Scroll down to see the **Environment variables**. Now go ahead and fill in the `SLACK_CHANNEL_ID` with the **channel_id** you copied earlier from your DynamoDB table. Lastly we also need to tell our Slack Lambda function, which Facebook page to operate on. Change the `FACEBOOK_PAGE_ID` to your Facebook page ID. Now hit the **Save** button.
+19\. Navigate to your **AWS Management Console** and select your **AWS Lambda** service. Select the **chatbot-SlackApp-\<Random ID\>** function. Scroll down to see the **Environment variables**. Now go ahead and fill in the `SLACK_CHANNEL_ID` with the **channel_id** you copied earlier from your DynamoDB table. Lastly we also need to tell our Slack Lambda function, which Facebook page to operate on. Change the `FACEBOOK_PAGE_ID` to your Facebook page ID. Now hit the **Save** button.
 
 _If you don't have the Facebook page ID handy, navigate to your Facebook page, click on **About** and scroll down to the bottom to see Facebook Page ID_
 
