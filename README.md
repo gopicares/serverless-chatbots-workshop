@@ -78,38 +78,12 @@ For this workshop we will use Elasticsearch to build a knowledge base and store 
 
 4\. In this step we will configure our Elasticsearch cluster. Keep the Instance count on **1**, but change the **Instance type** to **t2.small.elasticsearch** and leave both checkboxes below unticked. For the **Storage type** choose **EBS** and leave the default parameters of **General Purpose (SSD)** and **10GB**. Click next.
 
-5\. Now we need to specify an access policy for our Elasticsearch cluster. We want to provide world-readable access to our dashboard, but lock down the adding, editing and deleting of data within the cluster. Hence, please use the below policy (**Important:** Change all the `<AWS-REGION>` and `<AWS-ACCOUNT>` references below with your  AWS region and AWS account ID that you are using - AWS Regions must be defined with the [Region API Code](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html#concepts-available-regions) and your AWS Account ID can be found in [My Account](https://console.aws.amazon.com/billing/home?#/account) in your console):
+5\. Now we need to specify an access policy for our Elasticsearch cluster. Use the below policy (**Important:** Change all the `<AWS-REGION>` and `<AWS-ACCOUNT>` references below with your AWS region and AWS account ID that you are using - AWS Regions must be defined with the [Region API Code](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html#concepts-available-regions) and your AWS Account ID can be found in [My Account](https://console.aws.amazon.com/billing/home?#/account) in your console):
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "*"
-      },
-      "Action": [
-        "es:ESHttpGet",
-        "es:ESHttpHead"
-      ],
-      "Resource": "arn:aws:es:<AWS-REGION>:<AWS-ACCOUNT>:domain/chatbot/*"
-    },
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "*"
-      },
-      "Action": "es:ESHttpP*",
-      "Resource": [
-        "arn:aws:es:<AWS-REGION>:<AWS-ACCOUNT>:domain/chatbot/.kibana*",
-        "arn:aws:es:<AWS-REGION>:<AWS-ACCOUNT>:domain/chatbot/_plugin/kibana*",
-        "arn:aws:es:<AWS-REGION>:<AWS-ACCOUNT>:domain/chatbot/messages/_msearch*",
-        "arn:aws:es:<AWS-REGION>:<AWS-ACCOUNT>:domain/chatbot/messages/_search*"
-      ]
-    },
     {
       "Effect": "Allow",
       "Principal": {
@@ -405,9 +379,9 @@ In this section you will use Kibana together with the previously created Elastic
 
 ![Overview of Real-Time Dashboard Architecture](Images/section-5-overview.png)
 
-1\. Go back to the **AWS Management Console** and click on the **Amazon Elasticsearch Service**. Select the domain of your Chatbot (e.g. chatbot) and navigate to the listed Kibana URL.
+1\. As a preliminary we need to use a way of authenticating ourselves to Kibana using IAM. Our browser does not provide this authentication by default, so we will use a little Javascript local proxy on our laptop to proxy HTTP requests and add IAM credentials. We will make use of a small project contributed by [nakedible-p on Github](https://gist.github.com/nakedible-p/ad95dfb1c16e75af1ad5). The source code and node dependencies are attached to this Git repository. Please download the `es-proxy.js` file and `node_modules` folder to your laptop and execute the es-proxy.js by using the command `node es-proxy.js <es-endpoint>`. You can find your Elasticsearch endpoint by going back to the **AWS Management Console** and click on the **Amazon Elasticsearch Service**, now select the domain of your Chatbot (e.g. chatbot) and use the **Endpoint** URL without the "https://" in front.
 
-2\. Kibana needs to be configured now to use an index pattern for our messages that we logged earlier. Specify **messages** as **Index name** and Kibana should automatically detect "date" as Time-field name. Now click on **Create**.
+2\. Now navigate to [http://localhost:9200/_plugin/kibana/](http://localhost:9200/_plugin/kibana/) to see your Kibana dashboard.
 
 3\. Next click on Discover on the top left toolbar and see if we have incoming messages. (Tip: The upper right corner contains the time window on which you want to query your index. The default is 15 minutes, but you can change this to a higher value to see all the messages that you sent earlier throughout the workshop)
 
