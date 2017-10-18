@@ -66,6 +66,12 @@ exports.handler = function(event, context) {
             createIndex(callback);
         },
         function(callback) {
+            deleteIndexForMessages(callback);
+        },
+        function(callback) {
+            createIndexForMessages(callback);
+        },
+        function(callback) {
             async.eachLimit(qa, 5, function(doc, callback) {
                 var hash = md5(doc.question);
                 console.log("Question: " + doc.question + " Hash: " + hash);
@@ -152,6 +158,88 @@ var createIndex = function(callback) {
                                 "ignore_above": 256
                             }
                         }
+                    }
+                }
+            }
+        }
+    });
+
+    var signer = new AWS.Signers.V4(req, 'es');
+    signer.addAuthorization(creds, new Date());
+
+    var send = new AWS.NodeHttpClient();
+    send.handleRequest(req, null, function(httpResp) {
+        var respBody = '';
+        httpResp.on('data', function(chunk) {
+            respBody += chunk;
+        });
+        httpResp.on('end', function(chunk) {
+            console.log(respBody);
+            callback(null);
+        });
+    }, function(err) {
+        console.log('Error: ' + err);
+        callback(err);
+    });
+}
+
+var deleteIndexForMessages = function(callback) {
+    var req = new AWS.HttpRequest(endpoint);
+    req.method = 'DELETE';
+    req.path = path.join('/', 'messages');
+    req.region = esDomain.region;
+    req.headers['presigned-expires'] = false;
+    req.headers.Host = endpoint.host;
+    req.body = "";
+
+    var signer = new AWS.Signers.V4(req, 'es');
+    signer.addAuthorization(creds, new Date());
+
+    var send = new AWS.NodeHttpClient();
+    send.handleRequest(req, null, function(httpResp) {
+        var respBody = '';
+        httpResp.on('data', function(chunk) {
+            respBody += chunk;
+        });
+        httpResp.on('end', function(chunk) {
+            console.log(respBody);
+            callback(null);
+        });
+    }, function(err) {
+        console.log('Error: ' + err);
+        callback(err);
+    });
+}
+
+
+var createIndexForMessages = function(callback) {
+    var req = new AWS.HttpRequest(endpoint);
+    req.method = 'PUT';
+    req.path = path.join('/', 'messages');
+    req.region = esDomain.region;
+    req.headers['presigned-expires'] = false;
+    req.headers.Host = endpoint.host;
+    req.body = JSON.stringify({
+        "settings": {
+            "number_of_shards": 1
+        },
+        "mappings": {
+            "message": {
+                "properties": {
+                    "date": {
+                        "type": "date"
+                    },
+                    "sentence": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "sentiment": {
+                        "type": "float"
                     }
                 }
             }
