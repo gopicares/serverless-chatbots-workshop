@@ -120,8 +120,8 @@ var MarkAsAnswered = function(message, answer, state, event, context, callback) 
 var SendFacebookMessage = function(recipient, message, answered, event, context, callback) {
     console.log("Sending message to Facebook:" + message);
     message = message.replace(/[\u00A0-\u9999<>\&]/gim, function(i) {
-        return '&#' + i.charCodeAt(0) + ';';
-    });
+   return '&#'+i.charCodeAt(0)+';';
+});
     var response = JSON.stringify({
         "recipient": {
             "id": recipient
@@ -130,14 +130,15 @@ var SendFacebookMessage = function(recipient, message, answered, event, context,
             "text": message
         }
     });
+    console.log(response);
     var post_options = {
         host: 'graph.facebook.com',
         port: 443,
-        path: '/v2.8/me/messages?access_token=' + page_access_token,
+        path: '/v2.10/me/messages?access_token=' + page_access_token,
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(response, 'utf8')
+            'Content-Length': response.length
         }
     };
     // Set up the request
@@ -226,7 +227,7 @@ var QueryES = function(messageId, sender, raw_question, question, event, context
     console.log('Querying ES for an answer');
     var req = new AWS.HttpRequest(endpoint);
     req.method = 'GET';
-    req.path = '/knowledgebase/_search?q=question:' + encodeURIComponent(question);
+    req.path = '/knowledgebase/_search?q=question:(' + encodeURIComponent(question)+')';
     req.region = esDomain.region;
     req.headers['presigned-expires'] = false;
     req.headers['Host'] = endpoint.host;
@@ -254,7 +255,7 @@ var ProcessESResponse = function(messageId, sender, raw_question, hits, event, c
     if (typeof hits != "undefined" && "total" in hits && hits.total > 0) {
         console.log('Found ' + hits.total + ' matching answers');
         console.log('Best score: ' + hits.hits[0]["_score"]);
-        if (hits.hits[0]["_score"] < 0.02) {
+        if (hits.hits[0]["_score"] < 0.05) {
             // Best scoring answer is below confidence threshold. Send to Slack channel for verification
             SendToSlackForApproval(messageId, sender, raw_question, hits.hits[0]["_source"].answer, event, context, callback);
         } else

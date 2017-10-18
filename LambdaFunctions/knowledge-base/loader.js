@@ -61,11 +61,24 @@ var qa = [{
 
 
 exports.handler = function(event, context) {
-    async.eachLimit(qa, 5, function(doc, callback) {
-        var hash = md5(doc.question);
-        console.log("Question: " + doc.question + " Hash: " + hash);
-        PostToES(hash, JSON.stringify(doc), callback);
-    }, function(err) {
+    async.waterfall([
+        function(callback) {
+            createIndex(callback);
+        },
+        function(callback) {
+            async.eachLimit(qa, 5, function(doc, callback) {
+                var hash = md5(doc.question);
+                console.log("Question: " + doc.question + " Hash: " + hash);
+                PostToES(hash, JSON.stringify(doc), callback);
+            }, function(err) {
+                if (err) {
+                    callback(err);
+                } else {
+                    callback(null, "Knowledge Base loaded successfully");
+                }
+            });
+        }
+    ], function(err, result) {
         if (err) {
             context.done(err);
         } else {
@@ -100,3 +113,66 @@ var PostToES = function(id, doc, callback) {
         callback(err);
     });
 };
+
+var createIndex = function(callback) {
+    var req = new AWS.HttpRequest(endpoint);
+    req.method = 'PUT';
+    req.path = path.join('/', 'knowledgebase');
+    req.region = esDomain.region;
+    req.headers['presigned-expires'] = false;
+    req.headers.Host = endpoint.host;
+    req.body = JSON.stringify({
+        "settings": {
+            "number_of_shards": 1,
+            "index": {
+                "similarity": {
+                    "default": {
+                        "type": "classic"
+                    }
+                }
+            }
+        },
+        "mappings": {
+            "qa": {
+                "properties": {
+                    "answer": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "question": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    var signer = new AWS.Signers.V4(req, 'es');
+    signer.addAuthorization(creds, new Date());
+
+    var send = new AWS.NodeHttpClient();
+    send.handleRequest(req, null, function(httpResp) {
+        var respBody = '';
+        httpResp.on('data', function(chunk) {
+            respBody += chunk;
+        });
+        httpResp.on('end', function(chunk) {
+            console.log(respBody);
+            callback(null);
+        });
+    }, function(err) {
+        console.log('Error: ' + err);
+        callback(err);
+    });
+}
